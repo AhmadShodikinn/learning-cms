@@ -1,4 +1,6 @@
 ---
+import IconMoon from "@/assets/icons/IconMoon.svg";
+import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import { supabase } from "../../lib/supabase";
 ---
 
@@ -11,12 +13,16 @@ import { supabase } from "../../lib/supabase";
     <script is:inline>
       (() => {
         const stored = localStorage.getItem("theme");
-        document.documentElement.dataset.theme =
+        const theme =
           stored === "dark" || stored === "light"
             ? stored
             : matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
               : "light";
+        const root = document.documentElement;
+        root.dataset.theme = theme;
+        root.classList.toggle("dark", theme === "dark");
+        root.style.colorScheme = theme;
       })();
     </script>
   </head>
@@ -27,8 +33,13 @@ import { supabase } from "../../lib/supabase";
         type="button"
         class="theme-toggle"
         data-admin-theme-toggle
-        aria-label="Toggle color theme">Theme</button
+        title="Toggle theme"
+        aria-label="Switch to dark theme"
+        aria-pressed="false"
       >
+        <IconMoon class="theme-moon" />
+        <IconSunHigh class="theme-sun" />
+      </button>
       <div class="login-container">
         <div class="login-header">
           <span class="eyebrow"> Admin Access </span>
@@ -82,24 +93,27 @@ import { supabase } from "../../lib/supabase";
       import { supabase } from "../../lib/supabase";
 
       const setupTheme = () => {
-        const button = document.querySelector<HTMLElement>(
+        const button = document.querySelector<HTMLButtonElement>(
           "[data-admin-theme-toggle]"
         );
         const update = (theme: "light" | "dark") => {
-          document.documentElement.dataset.theme = theme;
+          const isDark = theme === "dark";
+          const nextTheme = isDark ? "light" : "dark";
+          const root = document.documentElement;
+          root.dataset.theme = theme;
+          root.classList.toggle("dark", isDark);
+          root.style.colorScheme = theme;
           localStorage.setItem("theme", theme);
-          if (button) {
-            button.textContent = theme === "dark" ? "Light" : "Dark";
-            button.setAttribute(
-              "aria-label",
-              `Switch to ${theme === "dark" ? "light" : "dark"} theme`
-            );
-          }
+          button?.setAttribute("aria-pressed", String(isDark));
+          button?.setAttribute("aria-label", `Switch to ${nextTheme} theme`);
+          button?.setAttribute("title", `Switch to ${nextTheme} theme`);
         };
         update(
           document.documentElement.dataset.theme === "dark" ? "dark" : "light"
         );
-        button?.addEventListener("click", () =>
+        if (!button || button.dataset.themeBound === "true") return;
+        button.dataset.themeBound = "true";
+        button.addEventListener("click", () =>
           update(
             document.documentElement.dataset.theme === "dark" ? "light" : "dark"
           )
@@ -419,14 +433,54 @@ import { supabase } from "../../lib/supabase";
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 8px 12px;
-    border: 1px solid #dedede;
-    border-radius: 6px;
-    background: #fff;
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
     color: #444;
-    font: inherit;
-    font-size: 13px;
     cursor: pointer;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease;
+  }
+
+  .theme-toggle:hover {
+    background: #f3f4f6;
+    color: #171717;
+  }
+
+  .theme-moon,
+  .theme-sun {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+    transition:
+      transform 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .theme-moon {
+    opacity: 1;
+  }
+
+  .theme-sun {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(90deg) scale(0.7);
+  }
+
+  :global(.dark) .theme-moon {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-90deg) scale(0.7);
+  }
+
+  :global(.dark) .theme-sun {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0) scale(1);
   }
 
   :global([data-theme="dark"]) {
@@ -457,10 +511,18 @@ import { supabase } from "../../lib/supabase";
     border-color: #374151;
   }
 
-  :global([data-theme="dark"]) .form-group input,
-  :global([data-theme="dark"]) .theme-toggle {
+  :global([data-theme="dark"]) .form-group input {
     border-color: #4b5563;
     background: #1f2937;
+    color: #f3f4f6;
+  }
+
+  :global([data-theme="dark"]) .theme-toggle {
+    color: #d1d5db;
+  }
+
+  :global([data-theme="dark"]) .theme-toggle:hover {
+    background: #374151;
     color: #f3f4f6;
   }
 
