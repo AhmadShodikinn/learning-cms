@@ -150,7 +150,7 @@ const { data: nextModule } = await supabase
         <div class="nav-side">
           {
             previousModule ? (
-              <a href={`/${previousModule.slug}`} class="lesson-nav-link">
+              <a href={`/modules/${previousModule.slug}`} class="lesson-nav-link">
                 <span class="nav-label">Sebelumnya</span>
 
                 <span class="nav-title">← {previousModule.title}</span>
@@ -162,7 +162,7 @@ const { data: nextModule } = await supabase
         <div class="nav-side nav-side-right">
           {
             nextModule ? (
-              <a href={`/${nextModule.slug}`} class="lesson-nav-link next">
+              <a href={`/modules/${nextModule.slug}`} class="lesson-nav-link next">
                 <span class="nav-label">Selanjutnya</span>
 
                 <span class="nav-title">{nextModule.title} →</span>
