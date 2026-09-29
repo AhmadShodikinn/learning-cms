@@ -1,0 +1,84 @@
+---
+import { supabase } from "../../lib/supabase";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin Login</title>
+  </head>
+
+  <body>
+    <main>
+      <h1>Admin Login</h1>
+
+      <form id="login-form">
+        <div>
+          <label for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+          />
+        </div>
+
+        <div>
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            required
+          />
+        </div>
+
+        <button type="submit">
+          Login
+        </button>
+
+        <p id="message"></p>
+      </form>
+    </main>
+
+    <script>
+      import { supabase } from "../../lib/supabase";
+
+      const form = document.getElementById("login-form");
+      const message = document.getElementById("message");
+
+      form?.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("password");
+
+        if (
+          !(emailInput instanceof HTMLInputElement) ||
+          !(passwordInput instanceof HTMLInputElement)
+        ) {
+          return;
+        }
+
+        message.textContent = "Logging in...";
+
+        const { data, error } =
+          await supabase.auth.signInWithPassword({
+            email: emailInput.value,
+            password: passwordInput.value,
+          });
+
+        if (error) {
+          message.textContent = error.message;
+          return;
+        }
+
+        console.log("LOGIN SUCCESS:", data);
+
+        message.textContent = "Login berhasil";
+
+        window.location.href = "/admin";
+      });
+    </script>
+  </body>
+</html>
