@@ -24,15 +24,15 @@ import {
 import { transformerFileName } from "./src/utils/transformers/fileName";
 import config from "./astro-paper.config";
 
+import vercel from "@astrojs/vercel";
+
 export default defineConfig({
   site: config.site.url,
 
   // Penting untuk dynamic route seperti /admin/modules/[id]/edit
   output: "server",
 
-  adapter: node({
-    mode: "standalone",
-  }),
+  adapter: vercel(),
 
   integrations: [
     mdx(),
