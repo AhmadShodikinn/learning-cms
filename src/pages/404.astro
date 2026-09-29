@@ -2,7 +2,6 @@
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
-import LinkButton from "@/components/LinkButton.astro";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
@@ -14,22 +13,154 @@ const t = useTranslations(locale);
 <Layout title={`${t.notFound.title} | ${config.site.title}`}>
   <Header />
 
-  <main
-    id="main-content"
-    class="app-layout my-1 flex flex-1 items-center justify-center"
-  >
-    <div class="mb-14 flex flex-col items-center justify-center">
-      <h1 class="text-accent text-9xl font-bold">404</h1>
-      <span aria-hidden="true"> ¯\_(ツ)_/¯ </span>
-      <p class="mt-4 text-2xl sm:text-3xl">{t.notFound.message}</p>
-      <LinkButton
-        href={getRelativeLocaleUrl(locale, "")}
-        class="my-6 text-lg underline decoration-dashed underline-offset-8"
-      >
-        {t.notFound.goHome}
-      </LinkButton>
+  <main id="main-content" class="not-found-page">
+    <div class="not-found-container">
+      <div class="not-found-code">404</div>
+
+      <p class="not-found-eyebrow">PAGE NOT FOUND</p>
+
+      <h1 class="not-found-title">
+        {t.notFound.message}
+      </h1>
+
+      <p class="not-found-description">
+        Halaman yang Anda cari mungkin telah dipindahkan, dihapus, atau alamat
+        yang dimasukkan tidak tersedia.
+      </p>
+
+      <div class="not-found-actions">
+        <a href={getRelativeLocaleUrl(locale, "")} class="home-link">
+          Kembali ke Beranda
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
     </div>
   </main>
 
   <Footer />
 </Layout>
+
+<style>
+  .not-found-page {
+    display: flex;
+    min-height: calc(100vh - 180px);
+    align-items: center;
+    justify-content: center;
+    padding: 70px 24px 90px;
+  }
+
+  .not-found-container {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .not-found-code {
+    margin-bottom: 22px;
+
+    color: var(--foreground-strong);
+
+    font-size: clamp(76px, 12vw, 128px);
+    font-weight: 700;
+    line-height: 0.9;
+
+    letter-spacing: -0.06em;
+  }
+
+  .not-found-eyebrow {
+    margin: 0 0 14px;
+
+    color: var(--foreground-subtle);
+
+    font-size: 11px;
+    font-weight: 600;
+
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .not-found-title {
+    margin: 0;
+
+    color: var(--foreground-strong);
+
+    font-size: clamp(24px, 4vw, 34px);
+    font-weight: 700;
+    line-height: 1.25;
+
+    letter-spacing: -0.025em;
+  }
+
+  .not-found-description {
+    max-width: 520px;
+
+    margin: 18px auto 0;
+
+    color: var(--foreground-muted);
+
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .not-found-actions {
+    display: flex;
+
+    justify-content: center;
+
+    margin-top: 30px;
+  }
+
+  .home-link {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 11px 16px;
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    background: var(--surface);
+
+    color: var(--foreground-strong);
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .home-link:hover {
+    border-color: var(--border-strong);
+
+    background: var(--surface-muted);
+
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 640px) {
+    .not-found-page {
+      min-height: calc(100vh - 140px);
+
+      padding: 50px 20px 70px;
+    }
+
+    .not-found-description {
+      font-size: 14px;
+    }
+
+    .home-link {
+      width: 100%;
+
+      justify-content: center;
+    }
+  }
+</style>

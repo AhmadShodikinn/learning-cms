@@ -10,21 +10,185 @@ type Props = {
 const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
 const t = useTranslations(Astro.currentLocale);
+
 const currentYear = new Date().getFullYear();
 ---
 
 <footer
-  class:list={["app-layout", { "mt-auto": !noMarginTop }, className]}
+  class:list={[
+    "site-footer",
+    {
+      "mt-auto": !noMarginTop,
+    },
+    className,
+  ]}
   {...attrs}
 >
-  <div
-    class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
-  >
-    <Socials />
-    <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
-      <span>{t.footer.copyright} &#169; {currentYear}</span>
-      <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
-      <span>{t.footer.allRightsReserved}</span>
+  <div class="footer-container">
+    <div class="footer-brand">
+      <!-- <strong>
+        learning space
+      </strong> -->
+
+      <span> Materi pembelajaran untuk proses belajar siswa. </span>
+    </div>
+
+    <div class="footer-right">
+      <!-- <Socials /> -->
+
+      <div class="footer-copy">
+        <span>
+          &#169; {currentYear} learning space
+        </span>
+
+        <span class="separator"> · </span>
+
+        <span>
+          {t.footer.allRightsReserved}
+        </span>
+      </div>
     </div>
   </div>
 </footer>
+
+<style>
+  .site-footer {
+    width: 100%;
+
+    background: var(--surface);
+    color: var(--foreground-muted);
+
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-container {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 30px;
+
+    width: min(100% - 40px, 920px);
+
+    min-height: 84px;
+
+    margin: 0 auto;
+    padding: 20px 0;
+  }
+
+  /* =========================
+     BRAND
+  ========================= */
+
+  .footer-brand {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    min-width: 0;
+  }
+
+  .footer-brand strong {
+    color: var(--foreground-strong);
+
+    font-size: 14px;
+    font-weight: 600;
+
+    line-height: 1.4;
+  }
+
+  .footer-brand span {
+    max-width: 420px;
+
+    color: var(--foreground-subtle);
+
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  /* =========================
+     RIGHT SIDE
+  ========================= */
+
+  .footer-right {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    gap: 8px;
+  }
+
+  .footer-copy {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: var(--foreground-subtle);
+
+    font-size: 12px;
+
+    white-space: nowrap;
+  }
+
+  .separator {
+    color: var(--border-strong);
+  }
+
+  /* =========================
+     SOCIAL
+  ========================= */
+
+  .footer-right :global(a) {
+    color: var(--foreground-muted);
+
+    transition: color 0.15s ease;
+  }
+
+  .footer-right :global(a:hover) {
+    color: var(--foreground-strong);
+  }
+
+  /* =========================
+     MOBILE
+  ========================= */
+
+  @media (max-width: 640px) {
+    .footer-container {
+      width: min(100% - 30px, 920px);
+
+      min-height: auto;
+
+      flex-direction: column;
+
+      align-items: flex-start;
+
+      gap: 18px;
+
+      padding: 24px 0;
+    }
+
+    .footer-right {
+      width: 100%;
+
+      align-items: flex-start;
+
+      gap: 12px;
+    }
+
+    .footer-copy {
+      flex-wrap: wrap;
+
+      white-space: normal;
+    }
+
+    .separator {
+      display: none;
+    }
+  }
+</style>

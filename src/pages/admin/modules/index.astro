@@ -1,0 +1,1041 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { supabase } from "../../../lib/supabase";
+
+const { data: modules, error } = await supabase
+  .from("modules")
+  .select("*")
+  .order("category", {
+    ascending: true,
+    nullsFirst: false,
+  })
+  .order("group_name", {
+    ascending: true,
+    nullsFirst: false,
+  })
+  .order("sort_order", {
+    ascending: true,
+  })
+  .order("created_at", {
+    ascending: false,
+  });
+
+function getYoutubeThumbnail(url: string | null) {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+
+    let videoId = "";
+
+    if (parsed.hostname.includes("youtu.be")) {
+      videoId = parsed.pathname.replace("/", "");
+    }
+
+    if (parsed.hostname.includes("youtube.com")) {
+      videoId = parsed.searchParams.get("v") ?? "";
+
+      if (!videoId && parsed.pathname.includes("/shorts/")) {
+        videoId = parsed.pathname.split("/shorts/")[1]?.split("/")[0] ?? "";
+      }
+
+      if (!videoId && parsed.pathname.includes("/embed/")) {
+        videoId = parsed.pathname.split("/embed/")[1]?.split("/")[0] ?? "";
+      }
+    }
+
+    if (!videoId) {
+      return null;
+    }
+
+    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  } catch {
+    return null;
+  }
+}
+---
+
+<AdminLayout title="Modules">
+  <!-- PAGE HEADER -->
+  <section class="module-page-header">
+    <div>
+      <span class="page-eyebrow"> Content </span>
+
+      <h1>Learning Modules</h1>
+
+      <p>Kelola materi, group, kategori, video, dan urutan pembelajaran.</p>
+    </div>
+
+    <a href="/admin/modules/create" class="btn btn-primary"> + Add Module </a>
+  </section>
+
+  <!-- TABLE -->
+  <div class="admin-card module-card">
+    {
+      error ? (
+        <div class="alert alert-danger">Failed to load modules.</div>
+      ) : modules && modules.length > 0 ? (
+        <div class="admin-table-wrapper">
+          <table class="admin-table module-table">
+            <thead>
+              <tr>
+                <th>Module</th>
+
+                <th>Category</th>
+
+                <th>Group</th>
+
+                <th>Status</th>
+
+                <th class="sort-column">Sort</th>
+
+                <th class="action-column">Action</th>
+
+                <th class="action-column">Preview</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {modules.map(module => {
+                const thumbnail = getYoutubeThumbnail(module.youtube_url);
+
+                return (
+                  <tr>
+                    <td>
+                      <div class="module-main">
+                        {thumbnail ? (
+                          <img
+                            src={thumbnail}
+                            alt={module.title}
+                            class="module-thumbnail"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div class="module-thumbnail-empty">
+                            <span>▶</span>
+                          </div>
+                        )}
+
+                        <div class="module-title-cell">
+                          <strong>{module.title}</strong>
+
+                          {module.description && (
+                            <span>
+                              {module.description.length > 95
+                                ? module.description.slice(0, 95) + "..."
+                                : module.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td>
+                      {module.category ? (
+                        <span class="category-text">{module.category}</span>
+                      ) : (
+                        <span class="empty-value">—</span>
+                      )}
+                    </td>
+
+                    <td>
+                      {module.group_name ? (
+                        <span class="group-name">{module.group_name}</span>
+                      ) : (
+                        <span class="empty-value">—</span>
+                      )}
+                    </td>
+
+                    <td>
+                      {module.is_published ? (
+                        <span class="badge badge-success">Published</span>
+                      ) : (
+                        <span class="badge badge-draft">Draft</span>
+                      )}
+                    </td>
+
+                    <td class="sort-column">
+                      <span class="sort-value">{module.sort_order ?? 0}</span>
+                    </td>
+
+                    <td>
+                      <div class="table-actions">
+                        <a
+                          href={`/admin/modules/${module.id}/edit`}
+                          class="action-link"
+                        >
+                          Edit
+                        </a>
+
+                        <button
+                          type="button"
+                          class="action-text-button delete-link"
+                          data-delete-button
+                          data-id={module.id}
+                          data-title={module.title}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+
+                    <td>
+                      <div class="table-actions">
+                        {module.slug && (
+                          <a
+                            href={`/modules/${module.slug}`}
+                            class="action-link muted"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Preview
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="empty-state">
+          <div class="empty-state-icon">▶</div>
+
+          <h3>No modules yet</h3>
+
+          <p>
+            Mulai tambahkan materi pembelajaran untuk ditampilkan kepada siswa.
+          </p>
+
+          <a href="/admin/modules/create" class="btn btn-primary">
+            + Add First Module
+          </a>
+        </div>
+      )
+    }
+  </div>
+
+  <!-- DELETE MODAL -->
+  <div id="delete-modal" class="modal-overlay" hidden>
+    <div
+      class="modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-modal-title"
+    >
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow"> Delete Module </span>
+
+          <h2 id="delete-modal-title">Hapus materi ini?</h2>
+        </div>
+
+        <button
+          id="modal-close"
+          type="button"
+          class="modal-close"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <p class="modal-description">
+        Materi
+
+        <strong id="delete-module-title"></strong>
+
+        akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.
+      </p>
+
+      <p id="delete-message" class="modal-message"></p>
+
+      <div class="modal-actions">
+        <button id="cancel-delete" type="button" class="btn btn-secondary">
+          Cancel
+        </button>
+
+        <button id="confirm-delete" type="button" class="btn btn-danger">
+          Delete Module
+        </button>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from "../../../lib/supabase";
+
+  const modal = document.getElementById("delete-modal");
+
+  const modalTitle = document.getElementById("delete-module-title");
+
+  const modalClose = document.getElementById("modal-close");
+
+  const cancelDelete = document.getElementById("cancel-delete");
+
+  const confirmDelete = document.getElementById("confirm-delete");
+
+  const deleteMessage = document.getElementById("delete-message");
+
+  const deleteButtons = document.querySelectorAll("[data-delete-button]");
+
+  let selectedId: string | null = null;
+
+  function openDeleteModal(id: string, title: string) {
+    selectedId = id;
+
+    if (modalTitle) {
+      modalTitle.textContent = `"${title}"`;
+    }
+
+    if (deleteMessage) {
+      deleteMessage.textContent = "";
+
+      deleteMessage.className = "modal-message";
+    }
+
+    if (modal) {
+      modal.hidden = false;
+    }
+
+    document.body.classList.add("modal-open");
+  }
+
+  function closeDeleteModal() {
+    selectedId = null;
+
+    if (modal) {
+      modal.hidden = true;
+    }
+
+    document.body.classList.remove("modal-open");
+
+    if (confirmDelete instanceof HTMLButtonElement) {
+      confirmDelete.disabled = false;
+
+      confirmDelete.textContent = "Delete Module";
+    }
+  }
+
+  deleteButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+
+      const id = button.dataset.id;
+
+      const title = button.dataset.title ?? "this module";
+
+      if (!id) {
+        return;
+      }
+
+      openDeleteModal(id, title);
+    });
+  });
+
+  modalClose?.addEventListener("click", closeDeleteModal);
+
+  cancelDelete?.addEventListener("click", closeDeleteModal);
+
+  modal?.addEventListener("click", event => {
+    if (event.target === modal) {
+      closeDeleteModal();
+    }
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && modal && !modal.hidden) {
+      closeDeleteModal();
+    }
+  });
+
+  confirmDelete?.addEventListener("click", async () => {
+    if (!selectedId) {
+      return;
+    }
+
+    if (confirmDelete instanceof HTMLButtonElement) {
+      confirmDelete.disabled = true;
+
+      confirmDelete.textContent = "Deleting...";
+    }
+
+    if (deleteMessage) {
+      deleteMessage.textContent = "Deleting module...";
+
+      deleteMessage.className = "modal-message";
+    }
+
+    const { error } = await supabase
+      .from("modules")
+      .delete()
+      .eq("id", selectedId);
+
+    if (error) {
+      if (deleteMessage) {
+        deleteMessage.textContent = error.message;
+
+        deleteMessage.className = "modal-message error";
+      }
+
+      if (confirmDelete instanceof HTMLButtonElement) {
+        confirmDelete.disabled = false;
+
+        confirmDelete.textContent = "Delete Module";
+      }
+
+      return;
+    }
+
+    window.location.reload();
+  });
+</script>
+
+<style>
+  /* =========================
+     PAGE HEADER
+  ========================= */
+
+  .module-page-header {
+    display: flex;
+
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 30px;
+
+    margin-bottom: 24px;
+  }
+
+  .page-eyebrow {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #9ca3af;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+  }
+
+  .module-page-header h1 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 24px;
+    font-weight: 700;
+
+    letter-spacing: -0.02em;
+  }
+
+  .module-page-header p {
+    margin: 7px 0 0;
+
+    color: #6b7280;
+
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* =========================
+     CARD
+  ========================= */
+
+  .module-card {
+    padding: 0;
+
+    overflow: hidden;
+  }
+
+  /* =========================
+     TABLE
+  ========================= */
+
+  .admin-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+  }
+
+  .module-table {
+    width: 100%;
+
+    border-collapse: collapse;
+  }
+
+  .module-table th {
+    padding: 13px 18px;
+
+    background: #fafafa;
+
+    color: #9ca3af;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    letter-spacing: 0.04em;
+
+    text-align: left;
+    text-transform: uppercase;
+
+    white-space: nowrap;
+  }
+
+  .module-table td {
+    padding: 16px 18px;
+
+    vertical-align: middle;
+  }
+
+  .module-table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  /* =========================
+     MODULE
+  ========================= */
+
+  .module-main {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    min-width: 320px;
+  }
+
+  .module-thumbnail {
+    width: 96px;
+    height: 58px;
+
+    flex-shrink: 0;
+
+    object-fit: cover;
+
+    border-radius: 7px;
+
+    background: #f3f4f6;
+  }
+
+  .module-thumbnail-empty {
+    display: flex;
+
+    width: 96px;
+    height: 58px;
+
+    flex-shrink: 0;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #f3f4f6;
+
+    color: #9ca3af;
+  }
+
+  .module-title-cell {
+    display: flex;
+
+    min-width: 0;
+
+    flex-direction: column;
+
+    gap: 5px;
+  }
+
+  .module-title-cell strong {
+    color: #111827;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    line-height: 1.45;
+  }
+
+  .module-title-cell span {
+    display: -webkit-box;
+
+    max-width: 350px;
+
+    overflow: hidden;
+
+    color: #9ca3af;
+
+    font-size: 12px;
+    line-height: 1.5;
+
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* =========================
+     CATEGORY
+  ========================= */
+
+  .category-text {
+    color: #4b5563;
+
+    font-size: 13px;
+
+    white-space: nowrap;
+  }
+
+  /* =========================
+     GROUP
+  ========================= */
+
+  .group-name {
+    display: inline-flex;
+
+    padding: 5px 9px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 6px;
+
+    background: #fafafa;
+
+    color: #4b5563;
+
+    font-size: 12px;
+    font-weight: 500;
+
+    white-space: nowrap;
+  }
+
+  .empty-value {
+    color: #c4c7cc;
+
+    font-size: 13px;
+  }
+
+  /* =========================
+     BADGE
+  ========================= */
+
+  .badge {
+    display: inline-flex;
+
+    padding: 4px 9px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    white-space: nowrap;
+  }
+
+  .badge-success {
+    background: #dcfce7;
+
+    color: #15803d;
+  }
+
+  .badge-draft {
+    background: #f3f4f6;
+
+    color: #6b7280;
+  }
+
+  /* =========================
+     SORT
+  ========================= */
+
+  .sort-column {
+    width: 70px;
+
+    text-align: center !important;
+  }
+
+  .sort-value {
+    display: inline-flex;
+
+    min-width: 28px;
+    height: 28px;
+
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 6px;
+
+    background: #fafafa;
+
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* =========================
+     ACTION
+  ========================= */
+
+  .action-column {
+    width: 120px;
+  }
+
+  .table-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    white-space: nowrap;
+  }
+
+  .action-link,
+  .action-text-button {
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #2563eb;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition: color 0.15s ease;
+  }
+
+  .action-link:hover,
+  .action-text-button:hover {
+    color: #1d4ed8;
+
+    text-decoration: underline;
+
+    text-underline-offset: 3px;
+  }
+
+  .delete-link {
+    color: #dc2626;
+  }
+
+  .delete-link:hover {
+    color: #b91c1c;
+  }
+
+  /* =========================
+     EMPTY
+  ========================= */
+
+  .empty-state {
+    padding: 72px 20px;
+
+    text-align: center;
+  }
+
+  .empty-state-icon {
+    display: flex;
+
+    width: 52px;
+    height: 52px;
+
+    margin: 0 auto 16px;
+
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 50%;
+
+    background: #fafafa;
+
+    color: #6b7280;
+
+    font-size: 17px;
+  }
+
+  .empty-state h3 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .empty-state p {
+    max-width: 360px;
+
+    margin: 8px auto 20px;
+
+    color: #9ca3af;
+
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* =========================
+     ALERT
+  ========================= */
+
+  .alert {
+    margin: 20px;
+
+    padding: 12px 14px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+  }
+
+  .alert-danger {
+    background: #fee2e2;
+
+    color: #b91c1c;
+  }
+
+  /* =========================
+     MODAL
+  ========================= */
+
+  :global(body.modal-open) {
+    overflow: hidden;
+  }
+
+  .modal-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1000;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(17, 24, 39, 0.42);
+
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-overlay[hidden] {
+    display: none;
+  }
+
+  .modal-dialog {
+    width: min(100%, 440px);
+
+    padding: 24px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    background: #fff;
+
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.14);
+  }
+
+  .modal-header {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+  }
+
+  .modal-eyebrow {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #dc2626;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  .modal-close {
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #9ca3af;
+
+    font-size: 24px;
+
+    cursor: pointer;
+  }
+
+  .modal-description {
+    margin: 18px 0 0;
+
+    color: #6b7280;
+
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .modal-description strong {
+    color: #374151;
+  }
+
+  .modal-message {
+    min-height: 18px;
+
+    margin: 14px 0 0;
+
+    color: #6b7280;
+
+    font-size: 12px;
+  }
+
+  .modal-message.error {
+    color: #b91c1c;
+  }
+
+  .modal-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 22px;
+    padding-top: 18px;
+
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .btn-danger {
+    background: #dc2626;
+
+    color: #fff;
+  }
+
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+
+  #confirm-delete:disabled {
+    opacity: 0.6;
+
+    cursor: not-allowed;
+  }
+
+  /* =========================
+     RESPONSIVE
+  ========================= */
+
+  :global([data-theme="dark"]) .module-page-header h1,
+  :global([data-theme="dark"]) .module-title-cell strong,
+  :global([data-theme="dark"]) .empty-state h3,
+  :global([data-theme="dark"]) .modal-header h2,
+  :global([data-theme="dark"]) .modal-description strong {
+    color: var(--admin-text);
+  }
+
+  :global([data-theme="dark"]) .module-page-header p,
+  :global([data-theme="dark"]) .module-title-cell span,
+  :global([data-theme="dark"]) .category-text,
+  :global([data-theme="dark"]) .empty-state p,
+  :global([data-theme="dark"]) .modal-description,
+  :global([data-theme="dark"]) .modal-message {
+    color: var(--admin-muted);
+  }
+
+  :global([data-theme="dark"]) .module-table th,
+  :global([data-theme="dark"]) .group-name,
+  :global([data-theme="dark"]) .sort-value,
+  :global([data-theme="dark"]) .module-thumbnail-empty,
+  :global([data-theme="dark"]) .empty-state-icon {
+    border-color: var(--admin-border);
+    background: var(--admin-surface-muted);
+    color: var(--admin-muted);
+  }
+
+  :global([data-theme="dark"]) .module-table td,
+  :global([data-theme="dark"]) .modal-actions {
+    border-color: var(--admin-border);
+  }
+
+  :global([data-theme="dark"]) .modal-dialog {
+    border-color: var(--admin-border);
+    background: var(--admin-surface);
+  }
+
+  :global([data-theme="dark"]) .badge-draft {
+    background: var(--admin-hover);
+    color: var(--admin-muted);
+  }
+
+  :global([data-theme="dark"]) .badge-success {
+    background: #14532d;
+    color: #bbf7d0;
+  }
+
+  @media (max-width: 800px) {
+    .module-page-header {
+      align-items: flex-start;
+
+      flex-direction: column;
+    }
+
+    .module-page-header .btn {
+      width: 100%;
+    }
+
+    .module-main {
+      min-width: 280px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .modal-dialog {
+      padding: 20px;
+    }
+
+    .modal-actions {
+      flex-direction: column-reverse;
+    }
+
+    .modal-actions .btn {
+      width: 100%;
+    }
+  }
+</style>

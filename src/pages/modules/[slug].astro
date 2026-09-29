@@ -1,0 +1,596 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { supabase } from "@/lib/supabase";
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect("/");
+}
+
+const { data: moduleData, error } = await supabase
+  .from("modules")
+  .select("*")
+  .eq("slug", slug)
+  .eq("is_published", true)
+  .single();
+
+if (error || !moduleData) {
+  return Astro.redirect("/404");
+}
+
+function getYoutubeEmbedUrl(url: string | null) {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+
+    let videoId = "";
+
+    if (parsed.hostname.includes("youtu.be")) {
+      videoId = parsed.pathname.replace("/", "");
+    }
+
+    if (parsed.hostname.includes("youtube.com")) {
+      videoId = parsed.searchParams.get("v") ?? "";
+
+      if (!videoId && parsed.pathname.includes("/shorts/")) {
+        videoId = parsed.pathname.split("/shorts/")[1]?.split("/")[0] ?? "";
+      }
+
+      if (!videoId && parsed.pathname.includes("/embed/")) {
+        videoId = parsed.pathname.split("/embed/")[1]?.split("/")[0] ?? "";
+      }
+    }
+
+    if (!videoId) return null;
+
+    return `https://www.youtube.com/embed/${videoId}`;
+  } catch {
+    return null;
+  }
+}
+
+const youtubeEmbedUrl = getYoutubeEmbedUrl(moduleData.youtube_url);
+
+const { data: previousModule } = await supabase
+  .from("modules")
+  .select("id, title, slug, sort_order")
+  .eq("is_published", true)
+  .lt("sort_order", moduleData.sort_order)
+  .order("sort_order", { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+const { data: nextModule } = await supabase
+  .from("modules")
+  .select("id, title, slug, sort_order")
+  .eq("is_published", true)
+  .gt("sort_order", moduleData.sort_order)
+  .order("sort_order", { ascending: true })
+  .limit(1)
+  .maybeSingle();
+---
+
+<Layout
+  title={moduleData.title}
+  description={moduleData.description ?? moduleData.title}
+>
+  <Header />
+
+  <main id="main-content" class="module-page">
+    <div class="module-container">
+      <!-- BACK -->
+      <div class="back-row">
+        <a href="/" class="back-link"> ← Kembali ke semua materi </a>
+      </div>
+
+      <!-- HEADER -->
+      <section class="module-header">
+        {
+          moduleData.category && (
+            <span class="module-category">{moduleData.category}</span>
+          )
+        }
+
+        <h1>
+          {moduleData.title}
+        </h1>
+
+        {
+          moduleData.description && (
+            <p class="module-lead">{moduleData.description}</p>
+          )
+        }
+      </section>
+
+      <!-- VIDEO -->
+      <section class="video-section">
+        <div class="video-wrapper">
+          {
+            youtubeEmbedUrl ? (
+              <iframe
+                src={youtubeEmbedUrl}
+                title={moduleData.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+              />
+            ) : (
+              <div class="video-empty">Video tidak tersedia.</div>
+            )
+          }
+        </div>
+      </section>
+
+      <!-- CONTENT -->
+      <section class="lesson-content">
+        <div class="lesson-heading">
+          <h2>Materi Pembelajaran</h2>
+
+          <span>
+            Module {String(moduleData.sort_order ?? 0).padStart(2, "0")}
+          </span>
+        </div>
+
+        {
+          moduleData.content ? (
+            <div class="content-text">{moduleData.content}</div>
+          ) : (
+            <div class="content-empty">
+              Belum ada materi tambahan untuk modul ini.
+            </div>
+          )
+        }
+      </section>
+
+      <!-- PREVIOUS / NEXT -->
+      <nav class="lesson-navigation">
+        <div class="nav-side">
+          {
+            previousModule ? (
+              <a href={`/${previousModule.slug}`} class="lesson-nav-link">
+                <span class="nav-label">Sebelumnya</span>
+
+                <span class="nav-title">← {previousModule.title}</span>
+              </a>
+            ) : null
+          }
+        </div>
+
+        <div class="nav-side nav-side-right">
+          {
+            nextModule ? (
+              <a href={`/${nextModule.slug}`} class="lesson-nav-link next">
+                <span class="nav-label">Selanjutnya</span>
+
+                <span class="nav-title">{nextModule.title} →</span>
+              </a>
+            ) : null
+          }
+        </div>
+      </nav>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  const finishButton = document.getElementById("finish-button");
+
+  const storageKey = `learning-module-completed:${window.location.pathname}`;
+
+  const completed = localStorage.getItem(storageKey) === "1";
+
+  if (completed && finishButton instanceof HTMLButtonElement) {
+    finishButton.textContent = "Selesai ✓";
+
+    finishButton.classList.add("completed");
+  }
+
+  finishButton?.addEventListener("click", () => {
+    if (!(finishButton instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    localStorage.setItem(storageKey, "1");
+
+    finishButton.textContent = "Selesai ✓";
+
+    finishButton.classList.add("completed");
+  });
+</script>
+
+<style>
+  .module-page {
+    min-height: 100vh;
+    background: var(--surface);
+    color: var(--foreground);
+  }
+
+  .module-container {
+    width: min(100% - 40px, 920px);
+    margin: 0 auto;
+    padding: 34px 0 80px;
+  }
+
+  /* =========================
+     BACK
+  ========================= */
+
+  .back-row {
+    margin-bottom: 32px;
+  }
+
+  .back-link {
+    color: var(--foreground-muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+
+    transition: color 0.15s ease;
+  }
+
+  .back-link:hover {
+    color: var(--foreground-strong);
+  }
+
+  /* =========================
+     HEADER
+  ========================= */
+
+  .module-header {
+    max-width: 760px;
+    margin-bottom: 30px;
+  }
+
+  .module-category {
+    display: block;
+
+    margin-bottom: 10px;
+
+    color: var(--foreground-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .module-header h1 {
+    margin: 0;
+
+    color: var(--foreground-strong);
+
+    font-size: clamp(30px, 5vw, 44px);
+
+    font-weight: 700;
+    line-height: 1.15;
+
+    letter-spacing: -0.035em;
+  }
+
+  .module-lead {
+    max-width: 680px;
+
+    margin: 16px 0 0;
+
+    color: var(--foreground-muted);
+
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  /* =========================
+     VIDEO
+  ========================= */
+
+  .video-section {
+    margin-bottom: 36px;
+  }
+
+  .video-wrapper {
+    position: relative;
+
+    width: 100%;
+    aspect-ratio: 16 / 9;
+
+    overflow: hidden;
+
+    border-radius: 7px;
+
+    background: var(--inverse);
+  }
+
+  .video-wrapper iframe {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    border: 0;
+  }
+
+  .video-empty {
+    display: flex;
+
+    width: 100%;
+    height: 100%;
+
+    align-items: center;
+    justify-content: center;
+
+    color: var(--foreground-subtle);
+
+    font-size: 14px;
+  }
+
+  /* =========================
+     CONTENT
+  ========================= */
+
+  .lesson-content {
+    padding: 28px 0 34px;
+
+    border-top: 1px solid var(--border);
+  }
+
+  .lesson-heading {
+    display: flex;
+
+    align-items: baseline;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 16px;
+  }
+
+  .lesson-heading h2 {
+    margin: 0;
+
+    color: var(--foreground-strong);
+
+    font-size: 18px;
+    font-weight: 650;
+  }
+
+  .lesson-heading span {
+    color: var(--foreground-subtle);
+
+    font-size: 12px;
+  }
+
+  .content-text {
+    max-width: 760px;
+
+    color: var(--foreground);
+
+    font-size: 15px;
+    line-height: 1.9;
+
+    white-space: pre-line;
+
+    letter-spacing: 0.005em;
+  }
+
+  .content-empty {
+    padding: 22px 0;
+
+    color: var(--foreground-subtle);
+
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  /* =========================
+     STATUS
+  ========================= */
+
+  .lesson-status {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 30px;
+
+    padding: 28px 0;
+
+    border-top: 1px solid var(--border);
+  }
+
+  .lesson-status strong {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--foreground-strong);
+
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .lesson-status p {
+    margin: 0;
+
+    color: var(--foreground-muted);
+
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .finish-button {
+    flex-shrink: 0;
+
+    min-width: 140px;
+
+    padding: 10px 15px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 6px;
+
+    background: var(--surface);
+
+    color: var(--foreground-strong);
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .finish-button:hover {
+    border-color: var(--foreground-subtle);
+
+    background: var(--surface-muted);
+  }
+
+  .finish-button.completed {
+    border-color: var(--foreground-strong);
+
+    background: var(--foreground-strong);
+
+    color: var(--surface);
+  }
+
+  /* =========================
+     NAVIGATION
+  ========================= */
+
+  .lesson-navigation {
+    display: grid;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    gap: 30px;
+
+    padding-top: 28px;
+
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-side {
+    min-width: 0;
+  }
+
+  .nav-side-right {
+    text-align: right;
+  }
+
+  .lesson-nav-link {
+    display: inline-flex;
+
+    max-width: 100%;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+    color: inherit;
+
+    text-decoration: none;
+  }
+
+  .nav-label {
+    color: var(--foreground-subtle);
+
+    font-size: 11px;
+    font-weight: 500;
+
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .nav-title {
+    overflow: hidden;
+
+    color: var(--foreground);
+
+    font-size: 14px;
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .lesson-nav-link:hover .nav-title {
+    text-decoration: underline;
+
+    text-decoration-thickness: 1px;
+
+    text-underline-offset: 4px;
+  }
+
+  /* =========================
+     TABLET / MOBILE
+  ========================= */
+
+  @media (max-width: 640px) {
+    .module-container {
+      width: min(100% - 30px, 920px);
+
+      padding: 26px 0 55px;
+    }
+
+    .back-row {
+      margin-bottom: 24px;
+    }
+
+    .module-header {
+      margin-bottom: 24px;
+    }
+
+    .module-header h1 {
+      font-size: 30px;
+    }
+
+    .module-lead {
+      font-size: 14px;
+    }
+
+    .video-section {
+      margin-bottom: 28px;
+    }
+
+    .video-wrapper {
+      border-radius: 5px;
+    }
+
+    .lesson-status {
+      flex-direction: column;
+
+      align-items: stretch;
+
+      gap: 18px;
+    }
+
+    .finish-button {
+      width: 100%;
+    }
+
+    .lesson-navigation {
+      grid-template-columns: 1fr;
+
+      gap: 22px;
+    }
+
+    .nav-side-right {
+      text-align: left;
+    }
+  }
+</style>

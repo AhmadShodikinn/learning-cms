@@ -10,25 +10,43 @@
   --font-app: var(--font-google-sans-code);
 }
 
-/* Light theme values */
 :root,
 [data-theme="light"] {
   --background: #fdfdfd;
+  --surface: #ffffff;
+  --surface-muted: #f4f4f4;
   --foreground: #282728;
+  --foreground-strong: #171717;
+  --foreground-muted: #666666;
+  --foreground-subtle: #999999;
   --accent: #006cac;
   --accent-foreground: #ffffff;
   --muted: #e6e6e6;
   --muted-foreground: #6b7280;
-  --border: #ece9e9;
+  --border: #e5e5e5;
+  --border-strong: #d1d5db;
+  --overlay: rgb(255 255 255 / 95%);
+  --shadow: rgb(0 0 0 / 12%);
+  --focus-shadow: rgb(0 0 0 / 4%);
+  --inverse: #171717;
 }
 
-/* Dark theme values */
 [data-theme="dark"] {
   --background: #212737;
+  --surface: #293246;
+  --surface-muted: #343f60;
   --foreground: #eaedf3;
+  --foreground-strong: #ffffff;
+  --foreground-muted: #c1cad9;
+  --foreground-subtle: #afb9ca;
   --accent: #ff6b01;
   --accent-foreground: #ffffff;
   --muted: #343f60;
   --muted-foreground: #afb9ca;
-  --border: #ab4b08;
+  --border: #46536d;
+  --border-strong: #61708c;
+  --overlay: rgb(41 50 70 / 95%);
+  --shadow: rgb(0 0 0 / 32%);
+  --focus-shadow: rgb(255 255 255 / 12%);
+  --inverse: #ffffff;
 }

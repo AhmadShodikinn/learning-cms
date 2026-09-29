@@ -1,0 +1,517 @@
+---
+import { supabase } from "../../lib/supabase";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <meta name="color-scheme" content="light dark" />
+    <script is:inline>
+      (() => {
+        const stored = localStorage.getItem("theme");
+        document.documentElement.dataset.theme =
+          stored === "dark" || stored === "light"
+            ? stored
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div class="admin-page">
+      <!-- HEADER -->
+      <header class="admin-header">
+        <div class="admin-header-inner">
+          <div class="admin-brand">
+            <strong>Admin</strong>
+            <span>Learning Management</span>
+          </div>
+
+          <div class="header-actions">
+            <button
+              type="button"
+              class="theme-toggle"
+              data-admin-theme-toggle
+              aria-label="Toggle color theme">Theme</button
+            >
+            <button id="logout-button" type="button" class="logout-button">
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT -->
+      <main class="admin-container">
+        <section class="page-heading">
+          <div>
+            <span class="eyebrow"> Dashboard </span>
+
+            <h1>Admin Dashboard</h1>
+
+            <p id="user-info">Checking session...</p>
+          </div>
+        </section>
+
+        <section class="admin-grid">
+          <a href="/admin/modules" class="admin-card">
+            <div class="admin-card-icon">M</div>
+
+            <div class="admin-card-content">
+              <h2>Learning Modules</h2>
+
+              <p>
+                Kelola materi pembelajaran, video, kategori, dan urutan modul.
+              </p>
+
+              <span> Kelola Materi → </span>
+            </div>
+          </a>
+
+          <a href="/" class="admin-card">
+            <div class="admin-card-icon">V</div>
+
+            <div class="admin-card-content">
+              <h2>View Website</h2>
+
+              <p>
+                Lihat tampilan halaman pembelajaran yang dapat diakses siswa.
+              </p>
+
+              <span> Buka Website → </span>
+            </div>
+          </a>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      import { supabase } from "../../lib/supabase";
+
+      const setupTheme = () => {
+        const button = document.querySelector<HTMLElement>(
+          "[data-admin-theme-toggle]"
+        );
+        const update = (theme: "light" | "dark") => {
+          document.documentElement.dataset.theme = theme;
+          localStorage.setItem("theme", theme);
+          if (button) {
+            button.textContent = theme === "dark" ? "Light" : "Dark";
+            button.setAttribute(
+              "aria-label",
+              `Switch to ${theme === "dark" ? "light" : "dark"} theme`
+            );
+          }
+        };
+        update(
+          document.documentElement.dataset.theme === "dark" ? "dark" : "light"
+        );
+        button?.addEventListener("click", () =>
+          update(
+            document.documentElement.dataset.theme === "dark" ? "light" : "dark"
+          )
+        );
+      };
+
+      setupTheme();
+      document.addEventListener("astro:page-load", setupTheme);
+
+      const userInfo = document.getElementById("user-info");
+
+      const logoutButton = document.getElementById("logout-button");
+
+      async function checkSession() {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          window.location.href = "/admin/login";
+
+          return;
+        }
+
+        if (!session) {
+          window.location.href = "/admin/login";
+
+          return;
+        }
+
+        if (userInfo) {
+          userInfo.textContent = `Login sebagai ${session.user.email ?? "-"}`;
+        }
+      }
+
+      logoutButton?.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+
+        window.location.href = "/admin/login";
+      });
+
+      checkSession();
+    </script>
+  </body>
+</html>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    background: #fff;
+  }
+
+  body {
+    margin: 0;
+
+    background: #fff;
+    color: #222;
+
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+  }
+
+  .admin-page {
+    min-height: 100vh;
+  }
+
+  /* =========================
+     HEADER
+  ========================= */
+
+  .admin-header {
+    width: 100%;
+
+    border-bottom: 1px solid #e8e8e8;
+
+    background: #fff;
+  }
+
+  .admin-header-inner {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    width: min(100% - 40px, 920px);
+
+    min-height: 72px;
+
+    margin: 0 auto;
+  }
+
+  .admin-brand {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+  }
+
+  .admin-brand strong {
+    color: #171717;
+
+    font-size: 17px;
+    font-weight: 700;
+
+    line-height: 1.2;
+  }
+
+  .admin-brand span {
+    color: #999;
+
+    font-size: 11px;
+    font-weight: 500;
+
+    letter-spacing: 0.06em;
+
+    text-transform: uppercase;
+  }
+
+  .logout-button {
+    padding: 8px 12px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 6px;
+
+    background: #fff;
+
+    color: #444;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .logout-button:hover {
+    border-color: #aaa;
+
+    background: #f7f7f7;
+  }
+
+  /* =========================
+     CONTENT
+  ========================= */
+
+  .admin-container {
+    width: min(100% - 40px, 920px);
+
+    margin: 0 auto;
+
+    padding: 50px 0 80px;
+  }
+
+  .page-heading {
+    margin-bottom: 36px;
+  }
+
+  .eyebrow {
+    display: block;
+
+    margin-bottom: 10px;
+
+    color: #999;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+  }
+
+  .page-heading h1 {
+    margin: 0;
+
+    color: #171717;
+
+    font-size: clamp(30px, 5vw, 42px);
+
+    font-weight: 700;
+
+    line-height: 1.15;
+
+    letter-spacing: -0.035em;
+  }
+
+  #user-info {
+    margin: 12px 0 0;
+
+    color: #777;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+  }
+
+  /* =========================
+     CARDS
+  ========================= */
+
+  .admin-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+
+    padding-top: 26px;
+
+    border-top: 1px solid #e7e7e7;
+  }
+
+  .admin-card {
+    display: flex;
+
+    gap: 18px;
+
+    padding: 22px;
+
+    border: 1px solid #e5e5e5;
+
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: inherit;
+
+    text-decoration: none;
+
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease,
+      background 0.15s ease;
+  }
+
+  .admin-card:hover {
+    border-color: #cfcfcf;
+
+    background: #fafafa;
+
+    transform: translateY(-1px);
+  }
+
+  .admin-card-icon {
+    display: flex;
+
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #ddd;
+
+    border-radius: 7px;
+
+    color: #444;
+
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .admin-card-content {
+    min-width: 0;
+  }
+
+  .admin-card-content h2 {
+    margin: 0 0 8px;
+
+    color: #1d1d1d;
+
+    font-size: 16px;
+    font-weight: 650;
+  }
+
+  .admin-card-content p {
+    margin: 0;
+
+    color: #777;
+
+    font-size: 13px;
+
+    line-height: 1.65;
+  }
+
+  .admin-card-content span {
+    display: inline-block;
+
+    margin-top: 14px;
+
+    color: #333;
+
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* =========================
+     MOBILE
+  ========================= */
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .theme-toggle {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    color: #444;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  :global([data-theme="dark"]) {
+    color-scheme: dark;
+    background: #111827;
+  }
+
+  :global([data-theme="dark"]) body,
+  :global([data-theme="dark"]) .admin-page {
+    background: #111827;
+    color: #e5e7eb;
+  }
+
+  :global([data-theme="dark"]) .admin-header,
+  :global([data-theme="dark"]) .admin-card,
+  :global([data-theme="dark"]) .logout-button,
+  :global([data-theme="dark"]) .theme-toggle {
+    border-color: #374151;
+    background: #1f2937;
+    color: #d1d5db;
+  }
+
+  :global([data-theme="dark"]) .admin-brand strong,
+  :global([data-theme="dark"]) .page-heading h1,
+  :global([data-theme="dark"]) .admin-card-content h2 {
+    color: #f3f4f6;
+  }
+
+  :global([data-theme="dark"]) .admin-brand span,
+  :global([data-theme="dark"]) .eyebrow,
+  :global([data-theme="dark"]) #user-info,
+  :global([data-theme="dark"]) .admin-card-content p {
+    color: #9ca3af;
+  }
+
+  :global([data-theme="dark"]) .admin-grid {
+    border-color: #374151;
+  }
+
+  :global([data-theme="dark"]) .admin-card:hover {
+    border-color: #4b5563;
+    background: #253244;
+  }
+
+  :global([data-theme="dark"]) .admin-card-icon,
+  :global([data-theme="dark"]) .admin-card-content span {
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+
+  @media (max-width: 640px) {
+    .admin-header-inner,
+    .admin-container {
+      width: min(100% - 30px, 920px);
+    }
+
+    .admin-header-inner {
+      min-height: 66px;
+    }
+
+    .admin-container {
+      padding: 36px 0 60px;
+    }
+
+    .admin-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-card {
+      padding: 18px;
+    }
+  }
+</style>
